@@ -1,0 +1,21 @@
+fileFormatVersion: 2
+guid: b4f9ed1a5ab132f4a8a1bdc90c6a9d4b
+timeCreated: 1485651784
+licenseType: Free
+TrueTypeFontImporter:
+  serializedVersion: 4
+  fontSize: 16
+  forceTextureCase: -2
+  characterSpacing: 0
+  characterPadding: 1
+  includeFontData: 1
+  fontNames:
+  - TYPOGRAPH PRO
+  fallbackFontReferences:
+  - {fileID: 12800000, guid: b5e8d721b52647c4e8144b192021fcef, type: 3}
+  customCharacters: 
+  fontRenderingMode: 0
+  ascentCalculationMode: 1
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
