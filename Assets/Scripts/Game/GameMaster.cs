@@ -43,9 +43,9 @@ public class GameMaster : MonoBehaviour {
     public Animator scanUI;
     public Animator extractUI;
     public Animator scanAlert;
-    public Text scanAmountText;
     public Animator extractAlert;
-    public Text extractAmountText;
+    public Animator scanExtractSwitch;
+    public Text scanExtractAmountText;
     public Text scoreText;
     public Animator cameraAnimator;
     public GameObject gameOverScreen;
@@ -60,6 +60,7 @@ public class GameMaster : MonoBehaviour {
     private const float BUTTON_YOFFSET = 0.7f;
     private const int TOTAL_MODES = 2;
 
+    private bool firstTime = false;
     private void OnValidate()
     {
         ////////////////////////////
@@ -188,6 +189,7 @@ public class GameMaster : MonoBehaviour {
 
         UpdateAll();
 
+        firstTime = true;
     }
 	
 	// Update is called once per frame
@@ -240,9 +242,17 @@ public class GameMaster : MonoBehaviour {
         UpdateBlockVisuals();
         UpdateButtonVisuals();
 
-        scanAmountText.text = (scanLimit - m_scans).ToString();
-        extractAmountText.text = (extractLimit - m_extracts).ToString();
+        switch(m_mode)
+        {
+            case 0:
+                scanExtractAmountText.text = (scanLimit - m_scans).ToString();
+                break;
+            case 1:
+                scanExtractAmountText.text = (extractLimit - m_extracts).ToString();
+                break;
+        }
 
+        scoreText.text = m_score.ToString();
 
         CheckWinLoseState();
 
@@ -255,10 +265,15 @@ public class GameMaster : MonoBehaviour {
             case 0:
                 scanUI.SetTrigger("ScanIn");
                 extractUI.SetTrigger("ExtractOut");
+
+                scanExtractSwitch.SetTrigger("ScanInExtractOut");
+
                 break;
             case 1:
                 scanUI.SetTrigger("ScanOut");
                 extractUI.SetTrigger("ExtractIn");
+
+                scanExtractSwitch.SetTrigger("ExtractInScanOut");
                 break;
         }
     }
@@ -445,23 +460,24 @@ public class GameMaster : MonoBehaviour {
             case 0:
                 if (m_scans >= scanLimit)
                 {
-                    scanAlert.SetTrigger("Alert");
+                    scanExtractSwitch.SetTrigger("ScanAlert");
                 }
                 else
                 {
                     m_scans++;
-                    scanAlert.SetTrigger("Bump");
+                    scanExtractSwitch.SetTrigger("ScanBump");
                     RevealLand(buttonPos);
                 }
                 break;
             case 1:
                 if (m_extracts >= extractLimit)
                 {
-
+                    scanExtractSwitch.SetTrigger("ExtractAlert");
                 }
                 else
                 {
                     m_extracts++;
+                    scanExtractSwitch.SetTrigger("ExtractBump");
                     CollectOre(buttonPos);
                 }
                 break;
@@ -581,26 +597,28 @@ public class GameMaster : MonoBehaviour {
 
     void CheckWinLoseState()
     {
-        int availableOre = 0;
+        //int availableOre = 0;
 
-        for (int x = 0; x < blockArray.GetLength(0); x++)
-        {
-            for (int y = 0; y < blockArray.GetLength(1); y++)
-            {
-                GameObject currentBlock = blockArray[x, y];
+        //for (int x = 0; x < blockArray.GetLength(0); x++)
+        //{
+        //    for (int y = 0; y < blockArray.GetLength(1); y++)
+        //    {
+        //        GameObject currentBlock = blockArray[x, y];
 
-                if (currentBlock.transform.Find("GrassLayer") == null)
-                {
-                    GameObject currentOre = currentBlock.transform.Find("Ore").gameObject;
-                    if (currentOre.GetComponent<BlockInfo>().blockValue != GameInfo.OreValue.Minimum)
-                    {
-                        availableOre++;
-                    }
-                }
-            }
-        }
+        //        if (currentBlock.transform.Find("GrassLayer") == null)
+        //        {
+        //            GameObject currentOre = currentBlock.transform.Find("Ore").gameObject;
+        //            if (currentOre.GetComponent<BlockInfo>().blockValue != GameInfo.OreValue.Minimum)
+        //            {
+        //                availableOre++;
+        //            }
+        //        }
+        //    }
+        //}
 
-        if (availableOre == 0 && m_scans >= scanLimit)
+        bool noExtract = m_extracts >= extractLimit;
+
+        if (noExtract)
         {
             GameOverState();
         }
