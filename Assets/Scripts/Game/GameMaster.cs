@@ -13,12 +13,16 @@ public class GameMaster : MonoBehaviour {
     [Tooltip("x*y size")]
     public int revealSize = 3;
     public int scanLimit = 10;
+    public int extractLimit = 10;
     public int maxOreValue = 8000;
 
     [ReadOnly]
     public int halfOreValue = 0;
     [ReadOnly]
     public int quarterOreValue = 0;
+    [ReadOnly]
+    public int minimumOreValue = 0;
+
 
     [ReadOnly]
     public int m_mode = 0;
@@ -26,6 +30,8 @@ public class GameMaster : MonoBehaviour {
     public uint m_score = 0;
     [ReadOnly]
     public uint m_scans = 0;
+    [ReadOnly]
+    public uint m_extracts = 0;
 
     public GameObject oreBlock;
     public GameObject grassLayer;
@@ -37,9 +43,10 @@ public class GameMaster : MonoBehaviour {
     public Animator scanUI;
     public Animator extractUI;
     public Animator scanAlert;
-    public Text scanAlertText;
+    public Text scanAmountText;
     public Animator extractAlert;
     public Text extractAmountText;
+    public Text scoreText;
     public Animator cameraAnimator;
     public GameObject gameOverScreen;
 
@@ -74,6 +81,7 @@ public class GameMaster : MonoBehaviour {
         ////////////////////
         halfOreValue = (int)(maxOreValue * 0.5f);
         quarterOreValue = (int)(maxOreValue * 0.25f);
+        minimumOreValue = (int)(maxOreValue * (1.0f / Random.Range(8,16)));
     }
 
     void Awake()
@@ -224,7 +232,7 @@ public class GameMaster : MonoBehaviour {
 
         UpdateAll();
 
-        yield return null;
+        //yield return null;
     }
 
     void UpdateAll()
@@ -232,8 +240,9 @@ public class GameMaster : MonoBehaviour {
         UpdateBlockVisuals();
         UpdateButtonVisuals();
 
-        scanAlertText.text = "Scans left: " + (scanLimit - m_scans);
-        extractAmountText.text = "Extracted: " + m_score;
+        scanAmountText.text = (scanLimit - m_scans).ToString();
+        extractAmountText.text = (extractLimit - m_extracts).ToString();
+
 
         CheckWinLoseState();
 
@@ -287,7 +296,7 @@ public class GameMaster : MonoBehaviour {
                     {
                         GameObject currentButton = buttonArray[x, y];
 
-                        if (blockArray[x,y].transform.Find("GrassLayer") == null)
+                        if (blockArray[x,y].transform.FindChild("GrassLayer") == null)
                         {
                             currentButton.SetActive(false);
                         }
@@ -312,11 +321,8 @@ public class GameMaster : MonoBehaviour {
                         {
                             if (blockArray[x,y].transform.Find("Ore") != null)
                             {
-                                GameObject currentOre = blockArray[x, y].transform.Find("Ore").gameObject;
-                                if (currentOre.GetComponent<BlockInfo>().blockValue != GameInfo.OreValue.None)
-                                {
+                                GameObject currentOre = blockArray[x, y].transform.FindChild("Ore").gameObject;
                                     currentButton.SetActive(true);
-                                }
                             }
                             
                         }
@@ -347,7 +353,7 @@ public class GameMaster : MonoBehaviour {
         GameObject examineBlock = blockArray[randXPos, randYPos].transform.FindChild("Ore").gameObject;
 
         // Checks if block is not empty
-        if (examineBlock.GetComponent<BlockInfo>().blockValue != GameInfo.OreValue.None)
+        if (examineBlock.GetComponent<BlockInfo>().blockValue != GameInfo.OreValue.Minimum)
         {
             // Recursion
             PlaceHighValueOres(totalLeft);
@@ -355,7 +361,7 @@ public class GameMaster : MonoBehaviour {
         else
         {
             // Set empty block as full
-            examineBlock.GetComponent<BlockInfo>().blockValue = GameInfo.OreValue.Full;
+            examineBlock.GetComponent<BlockInfo>().blockValue = GameInfo.OreValue.Max;
 
             // Save high value position for future use
             highValuePos.Add(new Vector2(randXPos, randYPos));
@@ -390,7 +396,7 @@ public class GameMaster : MonoBehaviour {
                         switch (examineBlock.GetComponent<BlockInfo>().blockValue)
                         {
                             // Skip full value blocks
-                            case GameInfo.OreValue.Full:
+                            case GameInfo.OreValue.Max:
                                 break;
                             default:
                                 examineBlock.GetComponent<BlockInfo>().blockValue = GameInfo.OreValue.Half;
@@ -415,7 +421,7 @@ public class GameMaster : MonoBehaviour {
                         switch (examineBlock.GetComponent<BlockInfo>().blockValue)
                         {
                             // Skip full value ores
-                            case GameInfo.OreValue.Full:
+                            case GameInfo.OreValue.Max:
                                 break;
                             // Skip half value ores
                             case GameInfo.OreValue.Half:
@@ -449,7 +455,15 @@ public class GameMaster : MonoBehaviour {
                 }
                 break;
             case 1:
-                CollectOre(buttonPos);
+                if (m_extracts >= extractLimit)
+                {
+
+                }
+                else
+                {
+                    m_extracts++;
+                    CollectOre(buttonPos);
+                }
                 break;
         }
 
@@ -467,7 +481,7 @@ public class GameMaster : MonoBehaviour {
 
         switch (currentOreInfo.blockValue)
         {
-            case GameInfo.OreValue.Full:
+            case GameInfo.OreValue.Max:
                 m_score += (uint)maxOreValue;
                 AddPopup(maxOreValue);
                 break;
@@ -479,9 +493,33 @@ public class GameMaster : MonoBehaviour {
                 m_score += (uint)quarterOreValue;
                 AddPopup(quarterOreValue);
                 break;
+            case GameInfo.OreValue.Minimum:
+                m_score += (uint)minimumOreValue;
+                AddPopup(minimumOreValue);
+                break;
         }
 
-        currentOreInfo.blockValue = GameInfo.OreValue.None;
+        currentOreInfo.blockValue = GameInfo.OreValue.Minimum;
+
+        for (int eX = x - (int)((revealSize + 2) / 2 + 0.5f); eX < x + (int)((revealSize + 2) / 2 + 1.5f); eX++)
+        {
+            for (int eY = y - (int)((revealSize + 2) / 2 + 0.5f); eY < y + (int)((revealSize + 2) / 2 + 1.5f); eY++)
+            {
+                // If position is in array index bounds
+                if ((eX >= 0 && eY >= 0) && (eX <= gridSizeX - 1 && eY <= gridSizeX - 1))
+                {
+                    if (!blockArray[eX, eY].transform.FindChild("GrassLayer"))
+                    {
+                        BlockInfo examineBlockInfo = blockArray[eX, eY].GetComponentInChildren<BlockInfo>();
+
+                        if (examineBlockInfo.blockValue != GameInfo.OreValue.Minimum)
+                        {
+                            examineBlockInfo.blockValue--;
+                        }
+                    }
+                }
+            }
+        }
     }
 
     void AddPopup(int addAmount)
@@ -554,7 +592,7 @@ public class GameMaster : MonoBehaviour {
                 if (currentBlock.transform.Find("GrassLayer") == null)
                 {
                     GameObject currentOre = currentBlock.transform.Find("Ore").gameObject;
-                    if (currentOre.GetComponent<BlockInfo>().blockValue != GameInfo.OreValue.None)
+                    if (currentOre.GetComponent<BlockInfo>().blockValue != GameInfo.OreValue.Minimum)
                     {
                         availableOre++;
                     }

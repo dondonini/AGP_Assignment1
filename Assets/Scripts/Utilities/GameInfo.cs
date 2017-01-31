@@ -5,9 +5,9 @@ public class GameInfo: MonoBehaviour {
 
 	public enum OreValue
     {
-        None,
+        Minimum,
         Quarter,
         Half,
-        Full,
+        Max,
     }
 }
